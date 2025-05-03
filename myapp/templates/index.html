@@ -1,8 +1,14 @@
 <!--Importa las direcciones desde base.html-->
 {% extends "layouts/base.html" %}
 
+{%load static %}
+
 <!--Contenido que siempre va a aparecer en la pagina inicial-->
 {% block content %}
+
     <h1>ChatBot GM</h1>
+    <img src="{% static 'GMlogo.png' %}" alt="GM Logo" width="200" height="200">
+
     <p>Welcome to the ChatBot GM application. This is a simple web application that allows you to interact with a chatbot.</p>
+
 {%endblock %}
