@@ -1,0 +1,23 @@
+# Archivos de entorno
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+
+# Django
+db.sqlite3
+*.log
+media/
+
+# IDE
+.vscode/
+.idea/
+
+# Sistema
+.DS_Store
+
+
+SECRET_KEY = 

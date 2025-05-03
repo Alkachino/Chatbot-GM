@@ -1,3 +1,4 @@
+import os
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -8,16 +9,21 @@ import json
 def get_bot_response(request):
     if request.method == 'POST':
         try:
+            # Obtener token de variables de entorno
+            hf_token = os.getenv('HF_API_TOKEN')
+            if not hf_token:
+                return JsonResponse({
+                    'error': 'Configuración faltante: HF_API_TOKEN no está definido'
+                }, status=500)
+
             data = json.loads(request.body)
             user_message = data.get('message', '')
             
-            # Configuración idéntica a tu aplicación de escritorio
             client = InferenceClient(
                 provider="nebius",
-                api_key="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",
+                api_key=hf_token  # Token desde variable de entorno
             )
             
-            # Llamada a la API igual que en tu versión funcional
             completion = client.chat.completions.create(
                 model="deepseek-ai/DeepSeek-V3-0324",
                 messages=[{"role": "user", "content": user_message}],
@@ -30,7 +36,7 @@ def get_bot_response(request):
             
         except Exception as e:
             return JsonResponse({
-                'error': f"Error al procesar: {str(e)}"
+                'error': f"Error al procesar la solicitud: {str(e)}"
             }, status=500)
     
     return JsonResponse({'error': 'Método no permitido'}, status=405)
