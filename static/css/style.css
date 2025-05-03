@@ -1,0 +1,127 @@
+/* Estilos generales */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+/* Contenedor principal del chat */
+.chat-container {
+    max-width: 800px;
+    margin: 20px auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 90vh;
+}
+
+/* Área de visualización de mensajes */
+.chat-display {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Estilos para los mensajes */
+.message {
+    padding: 12px 18px;
+    border-radius: 18px;
+    max-width: 75%;
+    word-wrap: break-word;
+    line-height: 1.4;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mensajes del usuario */
+.user-message {
+    background-color: #e3f2fd;
+    margin-left: auto;
+    border-bottom-right-radius: 5px;
+    color: #0d47a1;
+}
+
+/* Mensajes del bot */
+.bot-message {
+    background-color: #f1f1f1;
+    margin-right: auto;
+    border-bottom-left-radius: 5px;
+    color: #333;
+}
+
+/* Área de entrada */
+.input-area {
+    display: flex;
+    padding: 15px;
+    background: #f9f9f9;
+    border-top: 1px solid #eee;
+}
+
+/* Campo de entrada de texto */
+#user-input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+    font-size: 16px;
+    transition: border 0.3s;
+}
+
+#user-input:focus {
+    border-color: #4CAF50;
+}
+
+/* Botón de enviar */
+#send-btn {
+    margin-left: 10px;
+    padding: 12px 25px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+#send-btn:hover {
+    background-color: #45a049;
+}
+
+/* Estado "Pensando..." */
+.thinking {
+    color: #666;
+    font-style: italic;
+}
+
+/* Scrollbar personalizada */
+.chat-display::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-display::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.chat-display::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.chat-display::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
