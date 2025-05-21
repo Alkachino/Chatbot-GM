@@ -1,4 +1,4 @@
-#!/home/alkachino/Escritorio/Chatbot-GM/venv/bin/python3
+#!/home/alkachino/Escritorio/GM/Chatbot-GM/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
