@@ -19,5 +19,3 @@ media/
 # Sistema
 .DS_Store
 
-
-SECRET_KEY = 
