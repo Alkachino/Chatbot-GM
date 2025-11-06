@@ -402,6 +402,93 @@
       .hidden {
         display: none !important;
       }
+
+      /* Image Modal Styles */
+      .image-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        padding-top: 60px;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.9);
+        animation: fadeIn 0.5s;
+      }
+
+      .modal-content-wrapper {
+        margin: auto;
+        display: block;
+        width: 80%;
+        max-width: 900px;
+        text-align: center;
+        position: relative;
+      }
+
+      .modal-content {
+        max-width: 100%;
+        max-height: 80vh;
+        border-radius: var(--rounded-md);
+      }
+
+      .caption {
+        margin: 15px auto;
+        display: block;
+        width: 80%;
+        max-width: 700px;
+        text-align: center;
+        color: #ccc;
+        font-size: 1rem;
+      }
+
+      .close-modal {
+        position: absolute;
+        top: 15px;
+        right: 35px;
+        color: #f1f1f1;
+        font-size: 40px;
+        font-weight: bold;
+        transition: 0.3s;
+        cursor: pointer;
+      }
+
+      .close-modal:hover,
+      .close-modal:focus {
+        color: #bbb;
+        text-decoration: none;
+      }
+
+      .prev-slide,
+      .next-slide {
+        cursor: pointer;
+        position: absolute;
+        top: 50%;
+        width: auto;
+        padding: 16px;
+        margin-top: -50px;
+        color: white;
+        font-weight: bold;
+        font-size: 24px;
+        transition: 0.3s;
+        border-radius: 0 3px 3px 0;
+        user-select: none;
+      }
+
+      .next-slide {
+        right: 0;
+        border-radius: 3px 0 0 3px;
+      }
+      
+      .prev-slide {
+        left: 0;
+      }
+
+      .prev-slide:hover,
+      .next-slide:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
     </style>
   </head>
   <body>
@@ -459,153 +546,195 @@
       </div>
     </div>
 
+    <div id="image-modal" class="image-modal">
+      <span class="close-modal">&times;</span>
+      <a class="prev-slide">&#10094;</a>
+      <a class="next-slide">&#10095;</a>
+      <div class="modal-content-wrapper">
+        <img class="modal-content" id="modal-image">
+        <div id="caption" class="caption"></div>
+      </div>
+    </div>
+
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         const chatDisplay = document.getElementById("chat-display");
         const userInput = document.getElementById("user-input");
         const sendBtn = document.getElementById("send-btn");
-        const practicesList = document.getElementById("practices-list");
+        
+        // Modal elements
+        const modal = document.getElementById("image-modal");
+        const modalImg = document.getElementById("modal-image");
+        const captionText = document.getElementById("caption");
+        const closeModalBtn = document.querySelector(".close-modal");
+        const prevBtn = document.querySelector(".prev-slide");
+        const nextBtn = document.querySelector(".next-slide");
 
-        // Variables de estado
         let isProcessing = false;
-        let practices = [];
+        let currentGallery = [];
+        let currentSlideIndex = 0;
+        let messageCount = 0;
 
-        // Auto-resize textarea
+        // --- Modal Logic ---
+        function openModal(gallery, startIndex) {
+            currentGallery = gallery;
+            currentSlideIndex = startIndex;
+            modal.style.display = "block";
+            showSlide(currentSlideIndex);
+        }
+
+        function closeModal() {
+            modal.style.display = "none";
+        }
+
+        function showSlide(index) {
+            if (index >= currentGallery.length || index < 0) {
+                return;
+            }
+            currentSlideIndex = index;
+            modalImg.src = currentGallery[index];
+            captionText.innerHTML = `${index + 1} / ${currentGallery.length}`;
+            prevBtn.style.display = index === 0 ? "none" : "block";
+            nextBtn.style.display = index === currentGallery.length - 1 ? "none" : "block";
+        }
+
+        function changeSlide(n) {
+            showSlide(currentSlideIndex + n);
+        }
+
+        // Modal event listeners
+        closeModalBtn.addEventListener("click", closeModal);
+        prevBtn.addEventListener("click", () => changeSlide(-1));
+        nextBtn.addEventListener("click", () => changeSlide(1));
+        window.addEventListener("click", (event) => {
+            if (event.target == modal) {
+                closeModal();
+            }
+        });
+
+        // --- Chat Logic ---
         userInput.addEventListener("input", function () {
           this.style.height = "auto";
           this.style.height = Math.min(this.scrollHeight, 150) + "px";
         });
 
-
-
-
-
-        // Función para añadir mensajes al chat
-        function addMessage(sender, content) {
+        function addMessage(sender, content, galleryId) {
           const messageDiv = document.createElement("div");
           messageDiv.className = `message ${sender}-message`;
 
           const now = new Date();
-          const timeString = now.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
+          const timeString = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+          let messageContentHTML = `<div class="message-text">${content}</div>`;
+          
+          // The galleryId is now added here to the container
+          if (galleryId) {
+            messageDiv.dataset.galleryId = galleryId;
+          }
 
           messageDiv.innerHTML = `
-                    <div class="message-content">
-                        <div class="message-header">
-                            ${sender === "user" ? "Tú" : "Asistente GM"}
-                            <span class="message-time">${timeString}</span>
-                        </div>
-                        <div class="message-text">${content}</div>
-                    </div>
-                `;
+              <div class="message-content">
+                  <div class="message-header">
+                      ${sender === "user" ? "Tú" : "Asistente GM"}
+                      <span class="message-time">${timeString}</span>
+                  </div>
+                  ${messageContentHTML}
+              </div>
+          `;
 
           chatDisplay.appendChild(messageDiv);
           chatDisplay.scrollTop = chatDisplay.scrollHeight;
         }
 
-        // Función para mostrar el indicador "escribiendo"
         function showTypingIndicator() {
           const typingDiv = document.createElement("div");
           typingDiv.className = "message bot-message";
           typingDiv.id = "typing-indicator";
-
           typingDiv.innerHTML = `
-                    <div class="message-content">
-                        <div class="thinking-indicator">
-                            <span>Asistente GM está escribiendo</span>
-                            <div class="typing-dots">
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
+              <div class="message-content">
+                  <div class="thinking-indicator">
+                      <span>Asistente GM está escribiendo</span>
+                      <div class="typing-dots">
+                          <div class="typing-dot"></div>
+                          <div class="typing-dot"></div>
+                          <div class="typing-dot"></div>
+                      </div>
+                  </div>
+              </div>`;
           chatDisplay.appendChild(typingDiv);
           chatDisplay.scrollTop = chatDisplay.scrollHeight;
-
           return typingDiv;
         }
 
-        // Función para enviar mensajes
         async function sendMessage() {
           const message = userInput.value.trim();
           if (!message || isProcessing) return;
 
-          // Añadir mensaje del usuario
+          hideWelcomeMessage();
           addMessage("user", message);
           userInput.value = "";
           userInput.style.height = "auto";
           isProcessing = true;
           sendBtn.disabled = true;
 
-          // Mostrar indicador de typing
           const typingIndicator = showTypingIndicator();
 
           try {
             const response = await fetch("/get_response/", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": getCookie("csrftoken"),
-              },
+              headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
               body: JSON.stringify({ message: message }),
             });
 
             const data = await response.json();
+            if (typingIndicator) chatDisplay.removeChild(typingIndicator);
 
-            // Eliminar indicador de typing
-            if (typingIndicator && typingIndicator.parentNode) {
-              chatDisplay.removeChild(typingIndicator);
-            }
-
-            // Mostrar respuesta
             if (data.error) {
-              addMessage(
-                "bot",
-                `<i class="fas fa-exclamation-triangle"></i> Error: ${data.error}`
-              );
+              addMessage("bot", `<i class="fas fa-exclamation-triangle"></i> Error: ${data.error}`);
             } else {
-                // New logic to handle JSON with text and images
+                messageCount++;
+                const galleryId = `gallery-${messageCount}`;
                 let botResponseHTML = data.text_response;
+
                 if (data.image_urls && data.image_urls.length > 0) {
-                    botResponseHTML += '<div class="response-images-container">';
+                    botResponseHTML += `<div class="response-images-container" data-gallery-id="${galleryId}">`;
                     data.image_urls.forEach(url => {
-                        botResponseHTML += `<a href="${url}" target="_blank"><img src="${url}" alt="Imagen de referencia" class="response-image"></a>`;
+                        // Note: No <a> tag needed anymore for the modal logic
+                        botResponseHTML += `<img src="${url}" alt="Imagen de referencia" class="response-image">`;
                     });
                     botResponseHTML += '</div>';
                 }
-                addMessage("bot", botResponseHTML);
+                addMessage("bot", botResponseHTML, galleryId);
             }
           } catch (error) {
-            if (typingIndicator && typingIndicator.parentNode) {
-              chatDisplay.removeChild(typingIndicator);
-            }
-            addMessage(
-              "bot",
-              `<i class="fas fa-exclamation-triangle"></i> Error de conexión: ${error.message}`
-            );
+            if (typingIndicator) chatDisplay.removeChild(typingIndicator);
+            addMessage("bot", `<i class="fas fa-exclamation-triangle"></i> Error de conexión: ${error.message}`);
           } finally {
             isProcessing = false;
             sendBtn.disabled = false;
             userInput.focus();
           }
         }
+        
+        // Event Delegation for opening the modal
+        chatDisplay.addEventListener('click', function(event) {
+            if (event.target.classList.contains('response-image')) {
+                const imageContainer = event.target.closest('.response-images-container');
+                const galleryId = imageContainer.dataset.galleryId;
+                
+                const allImagesInGallery = document.querySelectorAll(`.response-images-container[data-gallery-id="${galleryId}"] .response-image`);
+                const gallerySrcs = Array.from(allImagesInGallery).map(img => img.src);
+                const clickedImageIndex = gallerySrcs.indexOf(event.target.src);
 
-        // Manejar el envío de mensajes
-        sendBtn.addEventListener("click", sendMessage);
-
-        userInput.addEventListener("keydown", function (e) {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-          }
+                openModal(gallerySrcs, clickedImageIndex);
+            }
         });
 
-        // Función para obtener cookies
+        sendBtn.addEventListener("click", sendMessage);
+        userInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        });
+
         function getCookie(name) {
           let cookieValue = null;
           if (document.cookie && document.cookie !== "") {
@@ -613,9 +742,7 @@
             for (let i = 0; i < cookies.length; i++) {
               const cookie = cookies[i].trim();
               if (cookie.substring(0, name.length + 1) === name + "=") {
-                cookieValue = decodeURIComponent(
-                  cookie.substring(name.length + 1)
-                );
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
               }
             }
@@ -623,19 +750,15 @@
           return cookieValue;
         }
 
-        // Ocultar mensaje de bienvenida después del primer mensaje
         let welcomeHidden = false;
         function hideWelcomeMessage() {
           if (!welcomeHidden) {
             const welcomeMsg = document.querySelector(".welcome-message");
-            if (welcomeMsg) {
-              welcomeMsg.style.display = "none";
-            }
+            if (welcomeMsg) welcomeMsg.style.display = "none";
             welcomeHidden = true;
           }
         }
 
-        // Focus en el input al cargar
         userInput.focus();
       });
     </script>
