@@ -75,10 +75,15 @@ def get_bot_response(request):
             # Generar respuesta con el modelo
             client = InferenceClient(provider="nebius", api_key=hf_token)
             
+            # List of available images for the LLM to use
+            image_files = [f for f in os.listdir(os.path.join('static', 'images', 'BP')) if f.endswith('.png')]
+            
             prompt = f"""Instrucciones:
             1. {instruction}
-            2. Si la información no está en el documento, di "No encuentro esta información en las Best Practices".
-            3. Sé preciso y cita las secciones relevantes cuando sea posible.
+            2. Tu respuesta DEBE ser un objeto JSON con la estructura: {{"texto": "...", "imagenes": [...]}}.
+            3. En la clave "texto", pon tu respuesta en lenguaje natural.
+            4. En la clave "imagenes", pon una lista de los nombres de archivo de imagen más relevantes para la respuesta. Las imágenes disponibles son: {image_files}. Si ninguna es relevante, deja la lista vacía.
+            5. Si la información no está en el documento, el "texto" debe ser "No encuentro esta información en las Best Practices" y las "imagenes" una lista vacía.
 
             CONTENIDO DEL DOCUMENTO:
             {context}
@@ -86,24 +91,40 @@ def get_bot_response(request):
             PREGUNTA:
             {user_message}
 
-            RESPUESTA:"""
+            RESPUESTA JSON:"""
             
             response = client.chat.completions.create(
                 model="deepseek-ai/DeepSeek-V3-0324",
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=600,
-                temperature=0.4,
+                max_tokens=800,
+                temperature=0.3,
                 top_p=0.9
             )
             
-            # Post-procesamiento para mejorar la respuesta
-            response_text = response.choices[0].message.content
+            llm_output_str = response.choices[0].message.content
             
-            # Asegurar que no halle respuestas cuando no hay información
-            if "no encuentro" in response_text.lower() or "no está en el documento" in response_text.lower():
-                response_text = "No encuentro información específica sobre esto en las Best Practices."
-            
-            return JsonResponse({'response': response_text})
+            # Parse the JSON response from the LLM
+            try:
+                # The model might wrap the JSON in ```json ... ```, so we clean it
+                if llm_output_str.strip().startswith('```json'):
+                    clean_json_str = llm_output_str.strip().replace('```json', '').replace('```', '')
+                else:
+                    clean_json_str = llm_output_str
+                
+                response_data = json.loads(clean_json_str)
+                text_response = response_data.get("texto", "No se pudo parsear la respuesta del modelo.")
+                image_filenames = response_data.get("imagenes", [])
+
+                # Build full static URLs for the images
+                from django.templatetags.static import static
+                image_urls = [static(f"images/BP/{filename}") for filename in image_filenames if isinstance(filename, str)]
+
+            except (json.JSONDecodeError, AttributeError) as e:
+                # Fallback if the LLM fails to produce valid JSON
+                text_response = llm_output_str
+                image_urls = []
+
+            return JsonResponse({'text_response': text_response, 'image_urls': image_urls})
             
         except json.JSONDecodeError:
             return JsonResponse({'response': "Error: Formato de solicitud inválido."})
