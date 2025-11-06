@@ -514,40 +514,38 @@
         margin: auto;
         display: flex;
         align-items: flex-start;
-        gap: 2rem;
-        width: 80%;
+        width: 90%;
         max-width: 1200px;
         text-align: left;
         position: relative;
+        gap: 2rem;
       }
 
       .modal-image-container {
-        flex: 1.5;
-        min-width: 0;
+        flex: 1;
+        text-align: center;
       }
 
-      .modal-description {
+      .description {
         flex: 1;
-        color: #ccc;
+        color: white;
         font-size: 1rem;
-        padding-top: 15px;
-        max-height: 80vh;
-        overflow-y: auto;
+        text-align: left;
       }
 
       .modal-content {
         max-width: 100%;
-        max-height: 70vh;
+        max-height: 80vh;
         border-radius: var(--rounded-md);
-        display: block;
       }
 
       .caption {
-        margin: 15px 0;
+        margin: 10px auto;
         display: block;
-        width: 100%;
-        text-align: left;
-        color: #ccc;
+        width: 80%;
+        max-width: 700px;
+        text-align: center;
+        color: #f1f1f1;
         font-size: 1.1rem;
         font-weight: bold;
       }
@@ -677,10 +675,10 @@
       <a class="next-slide">&#10095;</a>
       <div class="modal-content-wrapper">
         <div class="modal-image-container">
-          <img class="modal-content" id="modal-image" />
-          <div id="modal-image-title" class="caption"></div>
+          <img class="modal-content" id="modal-image">
+          <div id="modal-title" class="caption"></div>
         </div>
-        <div id="modal-image-description" class="modal-description"></div>
+        <div id="modal-description" class="description"></div>
       </div>
     </div>
 
@@ -693,8 +691,8 @@
         // Modal elements
         const modal = document.getElementById("image-modal");
         const modalImg = document.getElementById("modal-image");
-        const modalTitle = document.getElementById("modal-image-title");
-        const modalDescription = document.getElementById("modal-image-description");
+        const modalTitle = document.getElementById("modal-title");
+        const modalDescription = document.getElementById("modal-description");
         const closeModalBtn = document.querySelector(".close-modal");
         const prevBtn = document.querySelector(".prev-slide");
         const nextBtn = document.querySelector(".next-slide");
