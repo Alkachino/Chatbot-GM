@@ -414,12 +414,13 @@
           </p>
 
           <div class="practices-list">
-            <h4><i class="fas fa-book-open"></i> Prácticas disponibles:</h4>
+            <h4><i class="fas fa-book-open"></i> Áreas de Prácticas Disponibles:</h4>
             <ul id="practices-list">
-              <!-- Se llenará dinámicamente con JavaScript -->
-              <li>
-                <i class="fas fa-spinner fa-spin"></i> Cargando prácticas...
-              </li>
+              <li><i class="fas fa-check-circle"></i> Ergonomía y Espacios</li>
+              <li><i class="fas fa-check-circle"></i> Ensamblaje y Sujeción de Componentes</li>
+              <li><i class="fas fa-check-circle"></i> Ajuste</li>
+              <li><i class="fas fa-check-circle"></i> Acabado y Sellado</li>
+              <li><i class="fas fa-check-circle"></i> Procesos de Manufactura y Logística</li>
             </ul>
           </div>
         </div>
@@ -457,44 +458,9 @@
           this.style.height = Math.min(this.scrollHeight, 150) + "px";
         });
 
-        // Cargar prácticas disponibles al inicio
-        loadPractices();
 
-        // Función para cargar las prácticas disponibles
-        async function loadPractices() {
-          try {
-            const response = await fetch("/get_response/", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": getCookie("csrftoken"),
-              },
-              body: JSON.stringify({ message: "lista prácticas" }),
-            });
 
-            const data = await response.json();
 
-            if (data.response) {
-              // Extraer prácticas de la respuesta
-              const matches = data.response.match(/Best Practice \d+/g) || [];
-              practices = [...new Set(matches)]; // Eliminar duplicados
-
-              if (practices.length > 0) {
-                practicesList.innerHTML = practices
-                  .map(
-                    (p) => `<li><i class="fas fa-check-circle"></i> ${p}</li>`
-                  )
-                  .join("");
-              } else {
-                practicesList.innerHTML =
-                  "<li>No se pudieron cargar las prácticas</li>";
-              }
-            }
-          } catch (error) {
-            console.error("Error al cargar prácticas:", error);
-            practicesList.innerHTML = "<li>Error al cargar las prácticas</li>";
-          }
-        }
 
         // Función para añadir mensajes al chat
         function addMessage(sender, content) {
