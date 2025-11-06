@@ -4,9 +4,57 @@ import re
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.templatetags.static import static
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
 from .utils.document_processor import load_document_contents
+
+IMAGE_METADATA = {
+    "bp1_map_pocket_clearance.png": {
+        "title": "Espacio entre Portaobjetos y Controles del Asiento",
+        "description": "Ilustra el espacio libre requerido entre el portaobjetos de la puerta y el asiento, destacando la holgura necesaria para acceder a los controles del asiento."
+    },
+    "bp2_trim_foot_zones.png": {
+        "title": "Zonas de Interfaz del 'Trim Foot'",
+        "description": "Modelo CAD que muestra las 3 zonas de la interfaz 'Trim Foot' y sus medidas requeridas: Zona 1 (0mm), Transición (1.5mm) y Zona 2 (3mm)."
+    },
+    "bp3_scope.png": {
+        "title": "Alcance - Manijas 'Pull Handle' vs. 'Pull Cup'",
+        "description": "Ejemplos visuales que diferencian las manijas 'Pull Handle' (cubiertas por esta práctica) de las 'Pull Cup' (excluidas de esta práctica)."
+    },
+    "bp3_handle_zone.png": {
+        "title": "Zona de 360° de la Manija 'Pull Handle'",
+        "description": "Detalle fotográfico de una 'Pull Handle' que resalta su zona de agarre e interfaz completa de 360° con el panel de la puerta."
+    },
+    "bp3_attachment.png": {
+        "title": "Ubicación de Sujetadores de la Manija",
+        "description": "Vista CAD de la estructura de la manija, señalando las ubicaciones de los puntos de anclaje usados para fijarla a la lámina de la puerta con al menos dos sujetadores."
+    },
+    "bp4_pull_cup.png": {
+        "title": "Ejemplo de Manija 'Pull Cup'",
+        "description": "Ejemplo de un diseño 'Pull Cup', el cual se integra en el panel y se sujeta a la lámina metálica con un solo tornillo."
+    },
+    "bp5_buckle_location.png": {
+        "title": "Tipos de Anclaje de Hebilla (Asiento vs. Carrocería)",
+        "description": "Diagrama que compara las dos configuraciones de anclaje de la hebilla del cinturón: fijada al asiento o fijada a la carrocería del vehículo."
+    },
+    "bp5_latch_gap.png": {
+        "title": "Espacio Requerido entre Pestaña (Latch) y Panel",
+        "description": "Detalle que muestra el espacio libre (gap) requerido entre la pestaña (latch) del cinturón y el panel de la puerta para evitar daños."
+    },
+    "bp6_label_location.png": {
+        "title": "Ubicación y Guía para Colocación de Etiqueta",
+        "description": "Ubicación designada en el panel de la puerta para la etiqueta de información. Debe ser un área plana y se recomienda una línea guía para su colocación."
+    },
+    "bp7_rack_transport.png": {
+        "title": "Cinta de Protección para Transporte en Racks",
+        "description": "Indica la colocación de cinta protectora (100x100mm) en las esquinas superiores del panel para evitar daños durante el transporte en racks."
+    },
+    "bp7_export_coverage.png": {
+        "title": "Cobertura de Cinta para Vehículos de Exportación",
+        "description": "Zonas de cobertura de cinta protectora (Superior, Reposabrazos e Inferior) que se requieren específicamente para vehículos de exportación."
+    }
+}
 
 load_dotenv()
 
@@ -50,7 +98,7 @@ def get_bot_response(request):
             if re.search(r'\b(lista|practicas|prácticas|available|help)\b', user_message, re.IGNORECASE):
                 return JsonResponse({
                     'response': f"Puedo responder sobre estas Best Practices: {', '.join(PRACTICES_LIST)}\n"
-                               f"Puedes preguntar por una específica o hacer una pregunta general."
+                                f"Puedes preguntar por una específica o hacer una pregunta general."
                 })
 
             # Identificar si menciona una Best Practice específica
@@ -115,16 +163,22 @@ def get_bot_response(request):
                 text_response = response_data.get("texto", "No se pudo parsear la respuesta del modelo.")
                 image_filenames = response_data.get("imagenes", [])
 
-                # Build full static URLs for the images
-                from django.templatetags.static import static
-                image_urls = [static(f"images/BP/{filename}") for filename in image_filenames if isinstance(filename, str)]
+                images_with_metadata = []
+                for filename in image_filenames:
+                    if isinstance(filename, str):
+                        metadata = IMAGE_METADATA.get(filename, {})
+                        images_with_metadata.append({
+                            "url": static(f"images/BP/{filename}"),
+                            "title": metadata.get("title", ""),
+                            "description": metadata.get("description", "")
+                        })
 
             except (json.JSONDecodeError, AttributeError) as e:
                 # Fallback if the LLM fails to produce valid JSON
                 text_response = llm_output_str
-                image_urls = []
+                images_with_metadata = []
 
-            return JsonResponse({'text_response': text_response, 'image_urls': image_urls})
+            return JsonResponse({'text_response': text_response, 'images': images_with_metadata})
             
         except json.JSONDecodeError:
             return JsonResponse({'response': "Error: Formato de solicitud inválido."})

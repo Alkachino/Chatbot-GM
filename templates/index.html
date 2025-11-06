@@ -249,6 +249,18 @@
         transform: scale(1.05);
       }
 
+      .response-image-figure {
+        margin: 0;
+        text-align: center;
+        width: 200px; /* Match max-width of image */
+      }
+
+      .response-image-figure figcaption {
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--text-light);
+      }
+
       .message-header {
         display: flex;
         align-items: center;
@@ -688,8 +700,8 @@
                 return;
             }
             currentSlideIndex = index;
-            modalImg.src = currentGallery[index];
-            captionText.innerHTML = `${index + 1} / ${currentGallery.length}`;
+            modalImg.src = currentGallery[index].src;
+            captionText.innerHTML = currentGallery[index].description;
             prevBtn.style.display = index === 0 ? "none" : "block";
             nextBtn.style.display = index === currentGallery.length - 1 ? "none" : "block";
         }
@@ -785,22 +797,27 @@
             const data = await response.json();
             if (typingIndicator) chatDisplay.removeChild(typingIndicator);
 
-            if (data.error) {
-              addMessage("bot", `<i class="fas fa-exclamation-triangle"></i> Error: ${data.error}`);
-            } else {
+            if (data.text_response !== undefined) {
                 messageCount++;
                 const galleryId = `gallery-${messageCount}`;
                 let botResponseHTML = data.text_response;
 
-                if (data.image_urls && data.image_urls.length > 0) {
+                if (data.images && data.images.length > 0) {
                     botResponseHTML += `<div class="response-images-container" data-gallery-id="${galleryId}">`;
-                    data.image_urls.forEach(url => {
-                        // Note: No <a> tag needed anymore for the modal logic
-                        botResponseHTML += `<img src="${url}" alt="Imagen de referencia" class="response-image">`;
+                    data.images.forEach(image => {
+                        botResponseHTML += `
+                            <figure class="response-image-figure" data-description="${image.description}">
+                                <img src="${image.url}" alt="${image.title}" class="response-image">
+                                <figcaption>${image.title}</figcaption>
+                            </figure>
+                        `;
                     });
                     botResponseHTML += '</div>';
                 }
                 addMessage("bot", botResponseHTML, galleryId);
+            } else {
+                let errorMessage = data.response || data.error || "Respuesta inesperada del servidor.";
+                addMessage("bot", `<i class="fas fa-exclamation-triangle"></i> Error: ${errorMessage}`);
             }
           } catch (error) {
             if (typingIndicator) chatDisplay.removeChild(typingIndicator);
@@ -812,17 +829,27 @@
           }
         }
         
-        // Event Delegation for opening the modal
         chatDisplay.addEventListener('click', function(event) {
             if (event.target.classList.contains('response-image')) {
-                const imageContainer = event.target.closest('.response-images-container');
+                const figure = event.target.closest('.response-image-figure');
+                const imageContainer = figure.closest('.response-images-container');
                 const galleryId = imageContainer.dataset.galleryId;
                 
-                const allImagesInGallery = document.querySelectorAll(`.response-images-container[data-gallery-id="${galleryId}"] .response-image`);
-                const gallerySrcs = Array.from(allImagesInGallery).map(img => img.src);
-                const clickedImageIndex = gallerySrcs.indexOf(event.target.src);
+                const allImageFigures = document.querySelectorAll(`.response-images-container[data-gallery-id="${galleryId}"] .response-image-figure`);
+                const gallery = Array.from(allImageFigures).map(f => {
+                    const img = f.querySelector('.response-image');
+                    const caption = f.querySelector('figcaption');
+                    return {
+                        src: img.src,
+                        title: caption.textContent,
+                        description: f.dataset.description
+                    };
+                });
+                
+                const clickedImageSrc = event.target.src;
+                const clickedImageIndex = gallery.findIndex(img => img.src === clickedImageSrc);
 
-                openModal(gallerySrcs, clickedImageIndex);
+                openModal(gallery, clickedImageIndex);
             }
         });
 
