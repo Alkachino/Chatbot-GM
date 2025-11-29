@@ -1,13 +1,12 @@
 import os
 import json
-import re
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.templatetags.static import static
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
-from .utils.document_processor import load_document_contents
+from .utils.rag_service import RAGService
 
 IMAGE_METADATA = {
     "bp1_map_pocket_clearance.png": {
@@ -58,18 +57,18 @@ IMAGE_METADATA = {
 
 load_dotenv()
 
-# Cargar el documento al iniciar
+# Initialize RAG service
+rag_service = None
 try:
-    DOCUMENT_CONTEXT, DOCUMENT_SECTIONS = load_document_contents()
-    PRACTICES_LIST = list(DOCUMENT_SECTIONS.keys())
-    print(f"Documento cargado. Prácticas encontradas: {PRACTICES_LIST}")
+    rag_service = RAGService()
+    rag_service.initialize_vector_store()
+    print("RAG service initialized successfully")
 except Exception as e:
-    print(f"Error al cargar documento: {str(e)}")
-    DOCUMENT_CONTEXT, DOCUMENT_SECTIONS = "", {}
+    print(f"Error initializing RAG service: {str(e)}")
 
 @csrf_exempt
 def get_bot_response(request):
-    global DOCUMENT_CONTEXT, DOCUMENT_SECTIONS, PRACTICES_LIST
+    global rag_service
     
     if request.method == 'POST':
         try:
@@ -78,14 +77,14 @@ def get_bot_response(request):
             if not hf_token:
                 return JsonResponse({'response': "Error: Token de API no configurado"})
 
-            # Recargar documento si es necesario
-            if not DOCUMENT_CONTEXT:
+            # Initialize RAG service if not already done
+            if rag_service is None:
                 try:
-                    DOCUMENT_CONTEXT, DOCUMENT_SECTIONS = load_document_contents()
-                    PRACTICES_LIST = list(DOCUMENT_SECTIONS.keys())
+                    rag_service = RAGService()
+                    rag_service.initialize_vector_store()
                 except Exception as e:
                     return JsonResponse({
-                        'response': "Error: No puedo acceder al documento. Por favor verifica que el archivo esté correctamente ubicado."
+                        'response': "Error: No puedo acceder a los documentos. Por favor verifica que los archivos PDF estén correctamente ubicados."
                     })
 
             data = json.loads(request.body)
@@ -94,31 +93,12 @@ def get_bot_response(request):
             if not user_message:
                 return JsonResponse({'response': "Por favor ingresa una pregunta."})
 
-            # Manejar solicitudes de listado
-            if re.search(r'\b(lista|practicas|prácticas|available|help)\b', user_message, re.IGNORECASE):
-                return JsonResponse({
-                    'response': f"Puedo responder sobre estas Best Practices: {', '.join(PRACTICES_LIST)}\n"
-                                f"Puedes preguntar por una específica o hacer una pregunta general."
-                })
-
-            # Identificar si menciona una Best Practice específica
-            practice_match = re.search(r'\b(Best Practice \d+)\b', user_message, re.IGNORECASE)
-            specific_practice = practice_match.group(1).title() if practice_match else None
-
-            # Construir prompt según el tipo de pregunta
-            if specific_practice and specific_practice in PRACTICES_LIST:
-                # Pregunta sobre una práctica específica
-                context = f"{specific_practice}:\n{DOCUMENT_SECTIONS[specific_practice]}"
-                instruction = f"Responde únicamente basado en el contenido de {specific_practice}."
-            else:
-                # Pregunta general - usar todo el documento
-                context = DOCUMENT_CONTEXT
-                instruction = "Analiza todo el documento y responde basándote en la información más relevante."
-                
-                if specific_practice:  # Mencionó una práctica que no existe
-                    return JsonResponse({
-                        'response': f"No encuentro {specific_practice}. Prácticas disponibles: {', '.join(PRACTICES_LIST)}"
-                    })
+            # Use RAG to get relevant context
+            try:
+                context, retrieved_docs = rag_service.get_relevant_context(user_message, k=3)
+                print(f"Retrieved {len(retrieved_docs)} relevant chunks for query: {user_message}")
+            except Exception as e:
+                return JsonResponse({'response': f"Error al buscar información: {str(e)}"})
 
             # Generar respuesta con el modelo
             client = InferenceClient(provider="nebius", api_key=hf_token)
@@ -126,25 +106,23 @@ def get_bot_response(request):
             # List of available images for the LLM to use
             image_files = [f for f in os.listdir(os.path.join('static', 'images', 'BP')) if f.endswith('.png')]
             
-            prompt = f"""Instrucciones:
-            1. {instruction}
-            2. Tu respuesta DEBE ser un objeto JSON con la estructura: {{"texto": "...", "imagenes": [...]}}.
-            3. En la clave "texto", pon tu respuesta en lenguaje natural.
-            4. En la clave "imagenes", pon una lista de los nombres de archivo de imagen más relevantes para la respuesta. Las imágenes disponibles son: {image_files}. Si ninguna es relevante, deja la lista vacía.
-            5. Si la información no está en el documento, el "texto" debe ser "No encuentro esta información en las Best Practices" y las "imagenes" una lista vacía.
+            # Optimized prompt - reduced from ~150 tokens to ~50 tokens
+            prompt = f"""Responde en JSON: {{"texto": "...", "imagenes": [...]}}
+- texto: respuesta basada SOLO en el contexto
+- imagenes: nombres de archivos relevantes de {image_files} (vacío si no aplica)
+- Si no hay info: {{"texto": "No encuentro esta información", "imagenes": []}}
 
-            CONTENIDO DEL DOCUMENTO:
-            {context}
+CONTEXTO:
+{context}
 
-            PREGUNTA:
-            {user_message}
+PREGUNTA: {user_message}
 
-            RESPUESTA JSON:"""
+JSON:"""
             
             response = client.chat.completions.create(
                 model="deepseek-ai/DeepSeek-V3-0324",
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=800,
+                max_tokens=600,  # Reduced from 800
                 temperature=0.3,
                 top_p=0.9
             )
