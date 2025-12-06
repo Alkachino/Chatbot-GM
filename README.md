@@ -1,6 +1,5 @@
 # Chatbot-GM 🤖
 
-![Diseño de la aplicacion](https://github.com/user-attachments/assets/071257d5-ff78-4002-bfb5-aa13f2acca3e)
 
 Un chatbot inteligente basado en Django que utiliza **Retrieval-Augmented Generation (RAG)** para responder preguntas sobre documentación de General Motors. El sistema combina búsqueda semántica con modelos de lenguaje avanzados para proporcionar respuestas precisas y contextuales.
 
