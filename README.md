@@ -2,6 +2,14 @@
 
 ![Diseño de la aplicacion](https://github.com/user-attachments/assets/071257d5-ff78-4002-bfb5-aa13f2acca3e)
 
+## 📸 Interfaz del Chatbot
+
+![Interfaz del GM Best Practices Assistant](static/images/screenshots/chatbot_interface.png)
+
+_GM Best Practices Assistant - Interfaz principal mostrando las áreas de prácticas disponibles y el asistente conversacional powered by DeepSeek-V3_
+
+## 📖 Descripción
+
 Un chatbot inteligente basado en Django que utiliza **Retrieval-Augmented Generation (RAG)** para responder preguntas sobre documentación de General Motors. El sistema combina búsqueda semántica con modelos de lenguaje avanzados para proporcionar respuestas precisas y contextuales.
 
 ## 🌟 Características Principales
